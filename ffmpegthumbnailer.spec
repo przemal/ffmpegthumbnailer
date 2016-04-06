@@ -1,19 +1,28 @@
 Name:           ffmpegthumbnailer
-Version:        2.0.9
+Version:        2.1.1
 Release:        1%{?dist}
-Summary:        Lightweight video thumbnailer that can be used by file managers
+Summary:        Fast and lightweight video thumbnailer
 
 Group:          Applications/Multimedia
 License:        GPLv2+
-URL:            http://code.google.com/p/ffmpegthumbnailer/
-Source0:        https://bitbucket.org/mtuominen/fedora/src/49e8ed786ec5813f6b0ca53eb96d7e8dceb2e81f/SOURCES/%{name}-%{version}.tar.gz
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+URL:            https://github.com/dirkvdb/%{name}
+Source0:        https://codeload.github.com/dirkvdb/%{name}/tar.gz/%{version}#/%{name}-%{version}.tar.gz
 
-BuildRequires:  ffmpeg-devel, libpng-devel, libjpeg-devel
-BuildRequires:  chrpath, automake, autoconf, libtool, gcc-c++
+BuildRequires:  cmake
+BuildRequires:  libjpeg-devel
+BuildRequires:  libpng-devel
+BuildRequires:  pkgconfig(libavcodec)
+BuildRequires:  pkgconfig(libavformat)
+BuildRequires:  pkgconfig(libavutil)
+BuildRequires:  pkgconfig(libswscale)
+
 
 %description
-This video thumbnailer can be used to create thumbnails for your video files.
+Ffmpegthumbnailer is a lightweight video thumbnailer that can be used by file managers 
+to create thumbnails for your video files.
+The thumbnailer uses ffmpeg to decode frames from the video files, 
+so supported videoformats depend on the configuration flags of ffmpeg.
+
 
 %package devel
 Summary:        Headers and libraries for building apps that use ffmpegthumbnailer
@@ -21,35 +30,29 @@ Group:          Development/Libraries
 Requires:       %{name}%{?_isa} = %{version}-%{release}
 
 %description devel
-This video thumbnailer can be used to create thumbnails for your video files,
-development package.
+Development files for ffmpegthumbnailer package.
+
 
 %prep
 %setup -q
-chmod -x README INSTALL COPYING AUTHORS
+
 
 %build
-./autogen.sh
-%configure --enable-png \
-           --enable-jpeg \
-           --disable-static \
-           --enable-gio \
-           --enable-thumbnailer
+mkdir %{_target_platform}
+pushd %{_target_platform}
+%{cmake} -DENABLE_GIO=ON -DENABLE_THUMBNAILER=ON ..
+popd
 
-make %{?_smp_mflags}
+make %{?_smp_mflags} -C %{_target_platform}
 
- 
+
 %install
-rm -rf $RPM_BUILD_ROOT
-make install DESTDIR=$RPM_BUILD_ROOT
-#chrpath --delete $RPM_BUILD_ROOT%%{_bindir}/ffmpegthumbnailer
-find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
+make install DESTDIR=%{buildroot} -C %{_target_platform}
 
-%clean
-rm -rf $RPM_BUILD_ROOT
 
 %post -p /sbin/ldconfig
 %postun -p /sbin/ldconfig
+
 
 %files
 %defattr(-,root,root,-)
@@ -69,6 +72,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sat Apr 02 2016 Przemysław Palacz <pprzemal@gmail.com> - 2.1.1-1
+- Update to version 2.1.1
+- Use cmake instead of autoconf
+- Drop common build requirements
+- Remove unnecessary clean section
+- Update summary, url(s) and description
+
 * Thu Apr 09 2015 Magnus Tuominen <magnus.tuominen@gmail.com> - 2.0.9-1
 - 2.0.9
 
